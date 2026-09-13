@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { format, addHours, startOfHour, differenceInMinutes, isWithinInterval, addDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Search, Filter, Star, Bell, Info, ChevronLeft, ChevronRight, X, Loader2, Tv } from 'lucide-react';
+import { Search, Filter, Star, Bell, Info, ChevronLeft, ChevronRight, X, Loader2, Tv, Calendar, Share2, Sun, Moon, Play, Film, Trophy, Tv2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -40,9 +40,9 @@ function ChannelRow({
   setSelectedProgram 
 }: ChannelRowProps) {
   return (
-    <div key={channel.id} className="flex border-b border-slate-800/50 group h-20">
+    <div key={channel.id} className={cn("flex border-b group h-20", prefs.theme === 'light' ? 'border-slate-200' : 'border-slate-800/50')}>
       {/* Channel Sticky Cell */}
-      <div className="sticky left-0 z-20 w-48 md:w-64 bg-slate-900/95 backdrop-blur-sm border-r border-slate-800 flex items-center px-4 gap-4 transition-colors group-hover:bg-slate-800">
+      <div className={cn("sticky left-0 z-20 w-48 md:w-64 backdrop-blur-sm border-r flex items-center px-4 gap-4 transition-colors", prefs.theme === 'light' ? 'bg-white/95 border-slate-200 group-hover:bg-slate-50' : 'bg-slate-900/95 border-slate-800 group-hover:bg-slate-800')}>
         <div className="flex flex-col items-center justify-center min-w-[2.5rem]">
            <span className="text-[10px] font-bold text-slate-500 mb-1">{channel.number}</span>
            <button 
@@ -81,32 +81,40 @@ function ChannelRow({
                 key={program.id}
                 onClick={() => setSelectedProgram(program)}
                 className={cn(
-                  "absolute top-1 bottom-1 flex flex-col justify-center p-3 rounded-lg border text-left transition-all overflow-hidden group/item",
+                  "absolute top-1 bottom-1 flex flex-col justify-center px-3 py-1.5 rounded-lg border text-left transition-all overflow-hidden group/item",
                   isActive 
                     ? "bg-rose-600/20 border-rose-500/50 ring-1 ring-rose-500/30" 
-                    : "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600"
+                    : (prefs.theme === 'light' ? "bg-white border-slate-200 shadow-sm hover:border-slate-300" : "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600")
                 )}
                 style={{ left: offset, width: width - 4 }}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center justify-between gap-2 mb-0.5 w-full">
+                  
                   <span className={cn(
-                    "text-xs font-bold whitespace-nowrap",
-                    isActive ? "text-rose-400" : "text-slate-400"
+                    "text-[10px] md:text-xs font-semibold whitespace-nowrap tabular-nums",
+                    isActive ? (prefs.theme === 'light' ? "text-rose-600" : "text-rose-400") : "text-slate-500"
                   )}>
                     {format(program.startTime, 'HH:mm')} - {format(program.endTime, 'HH:mm')}
+                    {program.isLive && <span className="ml-2 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider animate-pulse">Directo</span>}
                   </span>
+
                   {prefs.alerts.includes(program.id) && (
-                    <Bell className="w-3 h-3 text-yellow-400 fill-current" />
+                    <Bell className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0" />
                   )}
                 </div>
-                <h3 className="font-bold text-sm leading-tight line-clamp-1 group-hover/item:text-rose-400 transition-colors">
+                <h3 className="font-bold text-sm truncate w-full group-hover/item:text-rose-500 transition-colors flex-shrink-0">
                   {program.title}
                 </h3>
                 {width > 150 && (
-                  <p className="text-[10px] text-slate-500 line-clamp-1 mt-1">
+                  <p className="text-[10px] text-slate-500 truncate w-full mt-0.5 flex-shrink-0">
                     {program.description}
                   </p>
                 )}
+
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 h-1 bg-rose-600" style={{ width: `${Math.max(0, Math.min(100, (currentTime.getTime() - program.startTime.getTime()) / (program.endTime.getTime() - program.startTime.getTime()) * 100))}%` }} />
+                )}
+
               </button>
             );
           })}
@@ -117,13 +125,59 @@ function ChannelRow({
 
 export default function EPGGuide() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<'Ayer'|'Hoy'|'Mañana'>('Hoy');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [epgData, setEpgData] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { prefs, toggleFavorite, toggleAlert } = useUserPreferences();
+  const { prefs, toggleFavorite, toggleAlert, toggleTheme, setFavoriteTeam } = useUserPreferences();
+
+  const handleToggleAlert = async (program: Program) => {
+    if (!prefs.alerts.includes(program.id)) {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        await Notification.requestPermission();
+      }
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Alerta programada', {
+          body: `Te avisaremos cuando empiece: ${program.title}`,
+          icon: '/favicon.ico'
+        });
+      }
+    }
+    toggleAlert(program.id);
+  };
+
+
+  // Parse URL hash for deep linking
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#program-')) {
+      const progId = hash.replace('#program-', '');
+      const found = epgData.find(p => p.id === progId);
+      if (found) setSelectedProgram(found);
+    }
+  }, [epgData]);
+
+
+  // Auto-alert for favorite team
+  useEffect(() => {
+    if (prefs.favoriteTeam && epgData.length > 0) {
+      const teamMatches = epgData.filter(p => 
+        p.category === 'Deportes' && 
+        (p.title.includes(prefs.favoriteTeam!) || p.description.includes(prefs.favoriteTeam!))
+      );
+      
+      teamMatches.forEach(match => {
+        if (!prefs.alerts.includes(match.id)) {
+          // Add to alerts silently to avoid spamming notification permission on load
+          toggleAlert(match.id);
+        }
+      });
+    }
+  }, [epgData, prefs.favoriteTeam]);
+
   
   useEffect(() => {
     async function fetchEPG() {
@@ -231,7 +285,7 @@ export default function EPGGuide() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="flex flex-col gap-4 p-4 md:px-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+      <header className={cn("flex flex-col gap-4 p-4 md:px-8 border-b backdrop-blur-md sticky top-0 z-50", prefs.theme === 'light' ? 'bg-white/80 border-slate-200' : 'bg-slate-900/50 border-slate-800')}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-rose-700 rounded-xl flex items-center justify-center shadow-lg shadow-rose-900/20">
@@ -252,7 +306,7 @@ export default function EPGGuide() {
                   "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
                   activeCategory === cat 
                     ? "bg-rose-600 text-white shadow-md" 
-                    : "text-slate-400 hover:text-slate-200"
+                    : (prefs.theme === 'light' ? "text-slate-600 hover:text-slate-900 bg-slate-100" : "text-slate-400 hover:text-slate-200 bg-slate-800/50")
                 )}
               >
                 {cat}
@@ -273,6 +327,59 @@ export default function EPGGuide() {
             />
           </div>
           <div className="flex items-center gap-2">
+
+          
+          <select
+            value={prefs.favoriteTeam || ''}
+            onChange={(e) => setFavoriteTeam(e.target.value)}
+            className={cn("text-xs md:text-sm rounded-xl px-2 md:px-3 py-1.5 focus:outline-none transition-colors border font-bold cursor-pointer", prefs.theme === 'light' ? "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200" : "bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50")}
+          >
+            <option value="">Tu equipo</option>
+            <option value="Real Madrid">Real Madrid</option>
+            <option value="Barcelona">FC Barcelona</option>
+            <option value="Atlético de Madrid">Atlético de Madrid</option>
+            <option value="Girona">Girona FC</option>
+            <option value="Athletic">Athletic Club</option>
+            <option value="Real Sociedad">Real Sociedad</option>
+            <option value="Real Betis">Real Betis</option>
+            <option value="Villarreal">Villarreal CF</option>
+            <option value="Valencia">Valencia CF</option>
+            <option value="Alavés">Deportivo Alavés</option>
+            <option value="Osasuna">CA Osasuna</option>
+            <option value="Getafe">Getafe CF</option>
+            <option value="Celta">Celta de Vigo</option>
+            <option value="Sevilla">Sevilla FC</option>
+            <option value="Mallorca">RCD Mallorca</option>
+            <option value="Las Palmas">UD Las Palmas</option>
+            <option value="Rayo Vallecano">Rayo Vallecano</option>
+            <option value="Valladolid">Real Valladolid</option>
+            <option value="Leganés">CD Leganés</option>
+            <option value="Espanyol">RCD Espanyol</option>
+          </select>
+
+          <button onClick={toggleTheme} className="p-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-rose-400 transition-colors">
+            {prefs.theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+
+
+          <div className={cn("flex p-1 rounded-xl", prefs.theme === 'light' ? "bg-slate-200" : "bg-slate-800/50")}>
+            {['Ayer', 'Hoy', 'Mañana'].map(day => (
+              <button
+                key={day}
+                onClick={() => {
+                  setSelectedDay(day as any);
+                  const newDate = new Date();
+                  if (day === 'Ayer') newDate.setDate(newDate.getDate() - 1);
+                  if (day === 'Mañana') newDate.setDate(newDate.getDate() + 1);
+                  setSelectedDate(newDate);
+                }}
+                className={cn("px-4 py-1.5 rounded-lg text-sm font-bold transition-all", selectedDay === day ? "bg-rose-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200")}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
             <button
               onClick={scrollToNow}
               className="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-rose-900/20 transition-all active:scale-95"
@@ -303,15 +410,15 @@ export default function EPGGuide() {
       {/* Main EPG Container */}
       <div className="relative flex-1 overflow-auto scrollbar-hide select-none" ref={containerRef}>
         {/* Sticky Header Row (Time) */}
-        <div className="sticky top-0 z-40 flex bg-slate-900 border-b border-slate-800">
-          <div className="sticky left-0 z-50 w-48 md:w-64 bg-slate-900 flex-shrink-0 border-r border-slate-800 flex items-center px-6 font-bold text-xs uppercase tracking-widest text-slate-500">
+        <div className={cn("sticky top-0 z-40 flex border-b", prefs.theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800')}>
+          <div className={cn("sticky left-0 z-50 w-48 md:w-64 flex-shrink-0 border-r flex items-center px-6 font-bold text-xs uppercase tracking-widest text-slate-500", prefs.theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800')}>
             Canal
           </div>
           <div className="flex">
             {timelineHours.map((hour, i) => (
               <div 
                 key={i} 
-                className="flex-shrink-0 border-r border-slate-800/50 px-4 py-3 text-sm font-semibold text-slate-400"
+                className={cn("flex-shrink-0 border-r px-4 py-3 text-sm font-semibold text-slate-400", prefs.theme === 'light' ? 'border-slate-200' : 'border-slate-800/50')}
                 style={{ width: HOUR_WIDTH }}
               >
                 {format(hour, 'HH:00')}
@@ -335,7 +442,7 @@ export default function EPGGuide() {
           {/* Favorites Section */}
           {favoriteChannels.length > 0 && (
             <>
-              <div className="sticky left-0 z-30 bg-slate-900/90 backdrop-blur-md px-6 py-2 border-b border-slate-800 text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <div className={cn("sticky left-0 z-30 backdrop-blur-md px-6 py-2 border-b text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] flex items-center gap-2", prefs.theme === 'light' ? 'bg-white/90 border-slate-200' : 'bg-slate-900/90 border-slate-800')}>
                 <Star className="w-3 h-3 fill-current" /> Mis Favoritos
               </div>
               {favoriteChannels.map((channel) => (
@@ -357,7 +464,7 @@ export default function EPGGuide() {
           {/* Regular Channels Section */}
           {regularChannels.length > 0 && (
             <>
-              <div className="sticky left-0 z-30 bg-slate-900/90 backdrop-blur-md px-6 py-2 border-b border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+              <div className={cn("sticky left-0 z-30 backdrop-blur-md px-6 py-2 border-b text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]", prefs.theme === 'light' ? 'bg-white/90 border-slate-200' : 'bg-slate-900/90 border-slate-800')}>
                 {favoriteChannels.length > 0 ? 'Otros Canales' : 'Canales'}
               </div>
               {regularChannels.map((channel) => (
@@ -393,7 +500,7 @@ export default function EPGGuide() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden"
+              className={cn("relative w-full max-w-lg rounded-3xl border shadow-2xl overflow-hidden", prefs.theme === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800')}
             >
               <div className="h-48 bg-slate-800 relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
@@ -415,13 +522,13 @@ export default function EPGGuide() {
                     <p className="text-rose-400 font-bold text-sm tracking-wide mb-1">
                       {selectedProgram.category} • {format(selectedProgram.startTime, 'HH:mm')}
                     </p>
-                    <h2 className="text-2xl font-bold leading-tight">{selectedProgram.title}</h2>
+                    <h2 className={cn("text-2xl font-bold leading-tight", prefs.theme === 'light' ? 'text-slate-900' : 'text-white')}>{selectedProgram.title}</h2>
                   </div>
                 </div>
               </div>
               
               <div className="p-8">
-                <div className="flex items-center gap-6 mb-8 py-4 border-y border-slate-800/50">
+                <div className={cn("flex items-center gap-6 mb-8 py-4 border-y", prefs.theme === 'light' ? 'border-slate-200' : 'border-slate-800/50')}>
                   <div className="text-center">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Inicio</p>
                     <p className="text-lg font-bold">{format(selectedProgram.startTime, 'HH:mm')}</p>
@@ -442,7 +549,7 @@ export default function EPGGuide() {
                   <h3 className="font-bold text-slate-300 flex items-center gap-2">
                     <Info className="w-4 h-4 text-rose-500" /> Sinopsis
                   </h3>
-                  <p className="text-slate-400 leading-relaxed text-sm">
+                  <p className={cn("leading-relaxed text-sm", prefs.theme === 'light' ? 'text-slate-600' : 'text-slate-400')}>
                     {selectedProgram.description}
                   </p>
                 </div>
@@ -456,7 +563,7 @@ export default function EPGGuide() {
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95",
                       prefs.alerts.includes(selectedProgram.id)
-                        ? "bg-slate-800 text-yellow-400 border border-yellow-400/20"
+                        ? "${prefs.theme === 'light' ? 'bg-yellow-50 text-yellow-600 border border-yellow-200' : 'bg-slate-800 text-yellow-400 border border-yellow-400/20'}"
                         : "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/20"
                     )}
                   >
@@ -474,7 +581,19 @@ export default function EPGGuide() {
                   >
                     <Star className={cn("w-6 h-6", prefs.favorites.includes(selectedProgram.channelId) && "fill-current")} />
                   </button>
-                </div>
+                
+                    <button
+                      onClick={() => {
+                        window.location.hash = `program-${selectedProgram.id}`;
+                        navigator.clipboard.writeText(window.location.href);
+                        alert('Enlace copiado al portapapeles');
+                      }}
+                      className={cn("flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all", prefs.theme === 'light' ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
+                    >
+                      <Share2 className="w-5 h-5" /> Compartir
+                    </button>
+
+                  </div>
               </div>
             </motion.div>
           </div>

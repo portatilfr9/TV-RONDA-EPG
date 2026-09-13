@@ -26,6 +26,13 @@ export const CHANNELS: Channel[] = [
   { id: '24h', name: '24h', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/4c/24h_2026.svg', category: 'TDT', number: 20 },
   { id: 'golplay', name: 'Gol Play', logo: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Gol_Play.svg', category: 'Deportes', number: 21 },
   
+  // Autonómicos
+  { id: 'canalsur', name: 'Canal Sur', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b0/CanalSur.svg', category: 'Autonómicos', number: 22 },
+  { id: 'tv3', name: 'TV3', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/40/TV3_logo.svg', category: 'Autonómicos', number: 23 },
+  { id: 'telemadrid', name: 'Telemadrid', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Telemadrid_logo.svg', category: 'Autonómicos', number: 24 },
+  { id: 'etb1', name: 'ETB 1', logo: 'https://upload.wikimedia.org/wikipedia/commons/0/0f/ETB_1_logo.svg', category: 'Autonómicos', number: 25 },
+  { id: 'tvg', name: 'TVG', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/48/Televisi%C3%B3n_de_Galicia_logo.svg', category: 'Autonómicos', number: 26 },
+
   // Movistar+ / Deportes
   { id: 'mplus', name: 'M+ Vamos', logo: 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Vamos_logo.svg', category: 'Deportes', number: 50 },
   { id: 'mplus-deportes', name: 'M+ Deportes', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/41/Movistar_Deportes.svg', category: 'Deportes', number: 53 },

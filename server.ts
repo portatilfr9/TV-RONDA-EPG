@@ -37,9 +37,11 @@ async function startServer() {
         contents: `Eres un experto en televisión española. Genera la programación EPG realista para el día ${date} para los siguientes canales: ${channels.map((c: any) => c.name).join(', ')}. 
         
         IMPORTANTE: 
-        1. Para canales de deportes como "M+ LaLiga", incluye los partidos específicos (ej. "Levante - Barcelona").
-        2. Devuelve un array de objetos con este esquema: { channelId, title, description, startTime (ISO), endTime (ISO), category }.
-        3. Asegúrate de cubrir las 24 horas del día.`,
+        1. Para canales de deportes como "M+ LaLiga", incluye los partidos específicos (ej. "Levante - Barcelona") y marca isLive: true si es directo.
+        2. Para Informativos o Galas, marca isLive: true si aplica.
+        3. Para Cine y Series, rellena el objeto metadata con director, cast (reparto) y year (año).
+        4. Devuelve un array de objetos con este esquema: { channelId, title, description, startTime (ISO), endTime (ISO), category, isLive (boolean), metadata (object) }.
+        5. Asegúrate de cubrir las 24 horas del día.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -53,6 +55,16 @@ async function startServer() {
                 startTime: { type: Type.STRING },
                 endTime: { type: Type.STRING },
                 category: { type: Type.STRING },
+                isLive: { type: Type.BOOLEAN },
+                metadata: {
+                  type: Type.OBJECT,
+                  properties: {
+                    director: { type: Type.STRING },
+                    cast: { type: Type.STRING },
+                    year: { type: Type.STRING },
+                    genre: { type: Type.STRING }
+                  }
+                }
               },
               required: ["channelId", "title", "description", "startTime", "endTime", "category"]
             }

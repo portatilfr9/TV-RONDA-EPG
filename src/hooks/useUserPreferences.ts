@@ -6,11 +6,16 @@ const STORAGE_KEY = 'epg_user_prefs';
 export function useUserPreferences() {
   const [prefs, setPrefs] = useState<UserPreferences>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : { favorites: [], alerts: [] };
+    return saved ? JSON.parse(saved) : { favorites: [], alerts: [], theme: 'dark' };
   });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    if (prefs.theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
   }, [prefs]);
 
   const toggleFavorite = (channelId: string) => {
@@ -31,5 +36,19 @@ export function useUserPreferences() {
     }));
   };
 
-  return { prefs, toggleFavorite, toggleAlert };
+  const toggleTheme = () => {
+    setPrefs(prev => ({
+      ...prev,
+      theme: prev.theme === 'light' ? 'dark' : 'light'
+    }));
+  };
+
+  const setFavoriteTeam = (team: string) => {
+    setPrefs(prev => ({
+      ...prev,
+      favoriteTeam: team
+    }));
+  };
+
+  return { prefs, toggleFavorite, toggleAlert, toggleTheme, setFavoriteTeam };
 }
