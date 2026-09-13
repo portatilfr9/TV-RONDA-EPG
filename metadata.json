@@ -1,0 +1,6 @@
+{
+  "name": "TV Ronda EPG",
+  "description": "Guía de programación oficial de TV Ronda EPG para canales TDT y Movistar+.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
